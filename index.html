@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weather Website</title>
+    <title>Weather v2.01</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -141,13 +141,25 @@
 
         showAlert(currentAlertIndex);
 
-        // Implementing ZIP code search
+        // ZIP code to lat/lon conversion and weather fetching
         document.getElementById('zip-search').addEventListener('input', async function() {
             const zip = this.value;
             if (zip.length !== 5 || isNaN(zip)) return;
 
-            // Fetch weather data using the ZIP code
-            const response = await fetch(`https://api.weather.gov/points/${zip}`);
+            // Convert ZIP code to latitude and longitude using a geocoding API
+            const geocodeResponse = await fetch(`https://api.zippopotam.us/us/${zip}`);
+            const geocodeData = await geocodeResponse.json();
+
+            if (!geocodeData.places || geocodeData.places.length === 0) {
+                alert('Invalid ZIP code');
+                return;
+            }
+
+            const latitude = geocodeData.places[0].latitude;
+            const longitude = geocodeData.places[0].longitude;
+
+            // Fetch weather data using the lat/lon
+            const response = await fetch(`https://api.weather.gov/points/${latitude},${longitude}`);
             const data = await response.json();
 
             const forecastUrl = data.properties.forecast;
