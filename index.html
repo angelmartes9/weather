@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weather v2.01</title>
+    <title>Weather 2,sxfs</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -96,6 +96,47 @@
             transform: translateY(-5px);
             box-shadow: 0 8px 15px rgba(0, 0, 0, 0.8);
         }
+
+        #alerts-container {
+            margin: 20px;
+        }
+
+        .alert-box {
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+            margin-bottom: 10px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .alert-box h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .alert-details {
+            display: none;
+            padding-top: 10px;
+            font-size: 16px;
+        }
+
+        .alert-box.open .alert-details {
+            display: block;
+        }
+
+        .alert-box::after {
+            content: '▼';
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            transition: transform 0.3s;
+        }
+
+        .alert-box.open::after {
+            transform: rotate(180deg);
+        }
     </style>
 </head>
 <body>
@@ -110,6 +151,10 @@
 
     <div id="weather-info">
         <!-- Weather info will be dynamically inserted here -->
+    </div>
+
+    <div id="alerts-container">
+        <!-- Weather alerts will be dynamically inserted here -->
     </div>
 
     <script>
@@ -163,10 +208,21 @@
             const data = await response.json();
 
             const forecastUrl = data.properties.forecast;
+            const alertsUrl = data.properties.alerts;
+
             const forecastResponse = await fetch(forecastUrl);
             const forecastData = await forecastResponse.json();
 
             displayWeatherInfo(forecastData);
+
+            if (alertsUrl) {
+                const alertsResponse = await fetch(alertsUrl);
+                const alertsData = await alertsResponse.json();
+
+                displayWeatherAlerts(alertsData);
+            } else {
+                document.getElementById('alerts-container').innerHTML = '<div class="alert-box">No weather alerts</div>';
+            }
         });
 
         function displayWeatherInfo(data) {
@@ -176,6 +232,34 @@
                 <div class="weather-box">Wind Speed: ${data.properties.periods[0].windSpeed}</div>
                 <div class="weather-box">Short Forecast: ${data.properties.periods[0].shortForecast}</div>
             `;
+        }
+
+        function displayWeatherAlerts(data) {
+            const alertsContainer = document.getElementById('alerts-container');
+            alertsContainer.innerHTML = '';
+
+            if (data.features.length > 0) {
+                data.features.forEach(alert => {
+                    const alertBox = document.createElement('div');
+                    alertBox.className = 'alert-box';
+                    alertBox.innerHTML = `
+                        <h3>${alert.properties.event}</h3>
+                        <div class="alert-details">
+                            <p>${alert.properties.description}</p>
+                            <p>Effective: ${new Date(alert.properties.effective).toLocaleString()}</p>
+                            <p>Expires: ${new Date(alert.properties.expires).toLocaleString()}</p>
+                        </div>
+                    `;
+
+                    alertBox.addEventListener('click', () => {
+                        alertBox.classList.toggle('open');
+                    });
+
+                    alertsContainer.appendChild(alertBox);
+                });
+            } else {
+                alertsContainer.innerHTML = '<div class="alert-box">No weather alerts</div>';
+            }
         }
     </script>
 </body>
