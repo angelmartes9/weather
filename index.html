@@ -6,10 +6,11 @@
     <title>Weather Website</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f4f4f4;
+            background-color: #121212;
+            color: #e0e0e0;
         }
 
         #alert-bar {
@@ -17,9 +18,9 @@
             justify-content: space-between;
             align-items: center;
             padding: 10px 20px;
-            color: white;
-            font-weight: bold;
-            position: relative;
+            border-radius: 5px;
+            margin: 20px;
+            font-size: 16px;
         }
 
         .alert {
@@ -27,24 +28,31 @@
         }
 
         .notice {
-            background-color: grey;
+            background-color: #616161;
         }
 
         .warning {
-            background-color: red;
+            background-color: #d32f2f;
         }
 
         .caution {
-            background-color: yellow;
+            background-color: #fbc02d;
             color: black;
         }
 
         #alert-close {
             background: none;
             border: none;
-            font-size: 16px;
-            color: white;
+            font-size: 20px;
+            color: #e0e0e0;
             cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            transition: background-color 0.3s;
+        }
+
+        #alert-close:hover {
+            background-color: rgba(255, 255, 255, 0.2);
         }
 
         #search-container {
@@ -52,29 +60,20 @@
             position: relative;
         }
 
-        #city-search {
+        #zip-search {
             width: 100%;
-            padding: 10px;
-            font-size: 16px;
+            padding: 15px;
+            font-size: 18px;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            border: none;
+            border-radius: 5px;
+            outline: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
         }
 
-        #suggestions {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background-color: white;
-            border: 1px solid #ccc;
-            z-index: 1000;
-        }
-
-        #suggestions div {
-            padding: 10px;
-            cursor: pointer;
-        }
-
-        #suggestions div:hover {
-            background-color: #eee;
+        #zip-search::placeholder {
+            color: #757575;
         }
 
         #weather-info {
@@ -85,11 +84,17 @@
         }
 
         .weather-box {
-            background-color: #ffffff;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
             text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .weather-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.8);
         }
     </style>
 </head>
@@ -100,8 +105,7 @@
     </div>
 
     <div id="search-container">
-        <input type="text" id="city-search" placeholder="Enter a city..." autocomplete="off">
-        <div id="suggestions"></div>
+        <input type="text" id="zip-search" placeholder="Enter a ZIP code..." autocomplete="off">
     </div>
 
     <div id="weather-info">
@@ -137,41 +141,20 @@
 
         showAlert(currentAlertIndex);
 
-        // Implementing city search with autocomplete
-        document.getElementById('city-search').addEventListener('input', async function() {
-            const query = this.value;
-            if (query.length < 3) return;
+        // Implementing ZIP code search
+        document.getElementById('zip-search').addEventListener('input', async function() {
+            const zip = this.value;
+            if (zip.length !== 5 || isNaN(zip)) return;
 
-            // Fetch city suggestions (using a free API like GeoDB Cities)
-            const response = await fetch(`https://wft-geo-db.p.rapidapi.com/v1/geo/cities?namePrefix=${query}&countryIds=US`, {
-                method: 'GET',
-                headers: {
-                    'X-RapidAPI-Key': 'YOUR_RAPIDAPI_KEY',
-                    'X-RapidAPI-Host': 'wft-geo-db.p.rapidapi.com'
-                }
-            });
+            // Fetch weather data using the ZIP code
+            const response = await fetch(`https://api.weather.gov/points/${zip}`);
             const data = await response.json();
 
-            const suggestions = document.getElementById('suggestions');
-            suggestions.innerHTML = '';
-            data.data.forEach(city => {
-                const div = document.createElement('div');
-                div.textContent = `${city.city}, ${city.region}`;
-                div.addEventListener('click', async function() {
-                    document.getElementById('city-search').value = `${city.city}, ${city.region}`;
-                    suggestions.innerHTML = '';
+            const forecastUrl = data.properties.forecast;
+            const forecastResponse = await fetch(forecastUrl);
+            const forecastData = await forecastResponse.json();
 
-                    // Fetch weather data for the selected city using National Weather Service API
-                    const weatherResponse = await fetch(`https://api.weather.gov/points/${city.latitude},${city.longitude}`);
-                    const weatherData = await weatherResponse.json();
-                    const forecastUrl = weatherData.properties.forecast;
-                    const forecastResponse = await fetch(forecastUrl);
-                    const forecastData = await forecastResponse.json();
-
-                    displayWeatherInfo(forecastData);
-                });
-                suggestions.appendChild(div);
-            });
+            displayWeatherInfo(forecastData);
         });
 
         function displayWeatherInfo(data) {
